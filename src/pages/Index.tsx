@@ -4,6 +4,7 @@ import PlayerStats from '@/components/PlayerStats';
 import HabitTracker from '@/components/HabitTracker';
 import TaskList from '@/components/TaskList';
 import ProgressRing from '@/components/ProgressRing';
+import { AchievementsGrid } from '@/components/Achievements';
 import { useGameState } from '@/hooks/useGameState';
 import { Calendar, Gamepad2, BarChart3 } from 'lucide-react';
 
@@ -16,6 +17,7 @@ const Index = () => {
     habits,
     tasks,
     completionRate,
+    achievements,
     toggleHabit,
     addHabit,
     deleteHabit,
@@ -110,6 +112,8 @@ const Index = () => {
               onAddTask={addTask}
               onDeleteTask={deleteTask}
             />
+            
+            <AchievementsGrid achievements={achievements} />
           </div>
         </div>
 
