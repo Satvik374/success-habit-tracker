@@ -1,10 +1,11 @@
+import { Link } from 'react-router-dom';
 import MotivationalQuote from '@/components/MotivationalQuote';
 import PlayerStats from '@/components/PlayerStats';
 import HabitTracker from '@/components/HabitTracker';
 import TaskList from '@/components/TaskList';
 import ProgressRing from '@/components/ProgressRing';
 import { useGameState } from '@/hooks/useGameState';
-import { Calendar, Gamepad2 } from 'lucide-react';
+import { Calendar, Gamepad2, BarChart3 } from 'lucide-react';
 
 const Index = () => {
   const {
@@ -45,9 +46,18 @@ const Index = () => {
               <p className="text-sm text-muted-foreground">2026 Edition</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Calendar className="w-4 h-4" />
-            <span className="text-sm">{formattedDate}</span>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/analytics"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+            >
+              <BarChart3 className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">Analytics</span>
+            </Link>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Calendar className="w-4 h-4" />
+              <span className="text-sm hidden md:inline">{formattedDate}</span>
+            </div>
           </div>
         </header>
 
