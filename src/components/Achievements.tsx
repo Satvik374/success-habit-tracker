@@ -211,13 +211,13 @@ interface AchievementBadgeProps {
 
 const AchievementBadge = ({ achievement, size = 'md' }: AchievementBadgeProps) => {
   const Icon = achievement.icon;
-  
+
   const sizeClasses = {
     sm: 'w-12 h-12',
     md: 'w-16 h-16',
     lg: 'w-20 h-20',
   };
-  
+
   const iconSizes = {
     sm: 20,
     md: 28,
@@ -227,14 +227,13 @@ const AchievementBadge = ({ achievement, size = 'md' }: AchievementBadgeProps) =
   return (
     <div className="flex flex-col items-center gap-2 group">
       <div
-        className={`${sizeClasses[size]} rounded-full flex items-center justify-center relative transition-all duration-300 ${
-          achievement.unlocked
-            ? 'bg-gradient-gold shadow-glow animate-pulse-glow'
-            : 'bg-muted border-2 border-border'
-        }`}
+        className={`${sizeClasses[size]} rounded-full flex items-center justify-center relative transition-all duration-300 ${achievement.unlocked
+            ? 'bg-aura-gradient shadow-aura-glow-lg animate-ripple-glow hover-aura-lift'
+            : 'bg-muted border-2 border-border group-hover:border-aura/50'
+          }`}
       >
         {achievement.unlocked ? (
-          <Icon size={iconSizes[size]} className="text-primary-foreground" />
+          <Icon size={iconSizes[size]} className="text-primary-foreground animate-float" />
         ) : (
           <Lock size={iconSizes[size]} className="text-muted-foreground" />
         )}
@@ -262,12 +261,12 @@ interface AchievementsGridProps {
 
 export const AchievementsGrid = ({ achievements }: AchievementsGridProps) => {
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
-  
+
   return (
-    <div className="bg-gradient-card rounded-xl p-6 shadow-card border border-border">
+    <div className="bg-gradient-card rounded-xl p-6 shadow-card border border-aura hover-aura-lift">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <Trophy className="w-5 h-5 text-primary" />
+          <Trophy className="w-5 h-5 text-primary animate-pulse-glow" />
           <h2 className="text-xl font-display font-bold text-foreground">Achievements</h2>
         </div>
         <div className="flex items-center gap-2">
@@ -276,13 +275,13 @@ export const AchievementsGrid = ({ achievements }: AchievementsGridProps) => {
           </span>
           <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-gold transition-all duration-500"
+              className="h-full bg-aura-gradient transition-all duration-500 shadow-aura-glow"
               style={{ width: `${(unlockedCount / achievements.length) * 100}%` }}
             />
           </div>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
         {achievements.map((achievement) => (
           <AchievementBadge key={achievement.id} achievement={achievement} size="sm" />

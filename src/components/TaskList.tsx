@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Check, Plus, Trash2, Zap } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Check, Plus, Trash2, Zap, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useParticles } from '@/hooks/useParticles';
 import {
   Select,
   SelectContent,
@@ -34,11 +35,24 @@ const priorityConfig = {
 const TaskList = ({ tasks, onToggleTask, onAddTask, onDeleteTask }: TaskListProps) => {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
+  const { triggerParticles } = useParticles();
+  const taskRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
 
   const handleAddTask = () => {
     if (newTaskTitle.trim()) {
       onAddTask(newTaskTitle.trim(), priority);
       setNewTaskTitle('');
+    }
+  };
+
+  const handleToggleTask = (taskId: string, completed: boolean) => {
+    onToggleTask(taskId);
+
+    // Trigger particles if completing (not uncompleting)
+    if (!completed) {
+      setTimeout(() => {
+        triggerParticles(taskRefs.current[taskId], 'sparkle', 20);
+      }, 50);
     }
   };
 
@@ -52,16 +66,19 @@ const TaskList = ({ tasks, onToggleTask, onAddTask, onDeleteTask }: TaskListProp
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
 
   return (
-    <div className="bg-gradient-card rounded-xl p-6 shadow-card border border-border">
+    <div className="bg-gradient-card rounded-xl p-6 shadow-card border border-aura hover-aura-lift">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-display font-bold text-foreground">Today's Quests</h2>
+        <div className="flex items-center gap-2">
+          <CheckCircle className="w-5 h-5 text-primary animate-pulse-glow" />
+          <h2 className="text-xl font-display font-bold text-foreground">Today's Quests</h2>
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
             {completedCount}/{tasks.length}
           </span>
           <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-success transition-all duration-300"
+              className="h-full bg-aura-gradient transition-all duration-300 shadow-aura-glow"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -86,7 +103,7 @@ const TaskList = ({ tasks, onToggleTask, onAddTask, onDeleteTask }: TaskListProp
             <SelectItem value="high">High</SelectItem>
           </SelectContent>
         </Select>
-        <Button onClick={handleAddTask} className="bg-gradient-gold text-primary-foreground hover:opacity-90">
+        <Button onClick={handleAddTask} className="bg-aura-gradient text-primary-foreground hover:opacity-90 shadow-aura-glow transition-all hover:shadow-aura-glow-lg">
           <Plus className="w-4 h-4" />
         </Button>
       </div>
@@ -95,26 +112,24 @@ const TaskList = ({ tasks, onToggleTask, onAddTask, onDeleteTask }: TaskListProp
         {tasks.map((task) => (
           <div
             key={task.id}
-            className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
-              task.completed
-                ? 'bg-success/10 border-success/30'
-                : 'bg-muted/50 border-border hover:border-border/80'
-            }`}
+            className={`flex items-center gap-3 p-3 rounded-lg border transition-all hover-aura-lift ${task.completed
+                ? 'bg-success/10 border-success/30 shadow-aura-glow'
+                : 'bg-muted/50 border-border hover:border-aura'
+              }`}
           >
             <button
-              onClick={() => onToggleTask(task.id)}
-              className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
-                task.completed
-                  ? 'bg-gradient-success'
-                  : 'border-2 border-muted-foreground hover:border-primary'
-              }`}
+              ref={el => taskRefs.current[task.id] = el}
+              onClick={() => handleToggleTask(task.id, task.completed)}
+              className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${task.completed
+                  ? 'bg-aura-gradient shadow-aura-glow'
+                  : 'border-2 border-muted-foreground hover:border-primary hover:shadow-aura-glow'
+                }`}
             >
               {task.completed && <Check className="w-3 h-3 text-accent-foreground animate-check" />}
             </button>
             <span
-              className={`flex-1 ${
-                task.completed ? 'line-through text-muted-foreground' : 'text-foreground'
-              }`}
+              className={`flex-1 ${task.completed ? 'line-through text-muted-foreground' : 'text-foreground'
+                }`}
             >
               {task.title}
             </span>

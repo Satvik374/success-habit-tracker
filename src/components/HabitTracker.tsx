@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Check, Plus, Trash2 } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Check, Plus, Trash2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useParticles } from '@/hooks/useParticles';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,8 @@ const HabitTracker = ({ habits, onToggleHabit, onAddHabit, onDeleteHabit }: Habi
   const [newHabitName, setNewHabitName] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('💪');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { triggerParticles } = useParticles();
+  const buttonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
 
   const handleAddHabit = () => {
     if (newHabitName.trim()) {
@@ -41,16 +44,31 @@ const HabitTracker = ({ habits, onToggleHabit, onAddHabit, onDeleteHabit }: Habi
     }
   };
 
+  const handleToggle = (habitId: string, dayIndex: number, completed: boolean) => {
+    onToggleHabit(habitId, dayIndex);
+
+    // Trigger particles if completing (not uncompleting)
+    if (!completed) {
+      const buttonKey = `${habitId}-${dayIndex}`;
+      setTimeout(() => {
+        triggerParticles(buttonRefs.current[buttonKey], 'burst', 15);
+      }, 50);
+    }
+  };
+
   const today = new Date().getDay();
   const todayIndex = today === 0 ? 6 : today - 1;
 
   return (
-    <div className="bg-gradient-card rounded-xl p-6 shadow-card border border-border">
+    <div className="bg-gradient-card rounded-xl p-6 shadow-card border border-aura hover-aura-lift relative overflow-hidden">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-display font-bold text-foreground">Weekly Habits</h2>
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-primary animate-pulse-glow" />
+          <h2 className="text-xl font-display font-bold text-foreground">Weekly Habits</h2>
+        </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="bg-gradient-gold text-primary-foreground hover:opacity-90">
+            <Button size="sm" className="bg-aura-gradient text-primary-foreground hover:opacity-90 shadow-aura-glow transition-all hover:shadow-aura-glow-lg">
               <Plus className="w-4 h-4 mr-1" />
               Add Habit
             </Button>
@@ -73,18 +91,17 @@ const HabitTracker = ({ habits, onToggleHabit, onAddHabit, onDeleteHabit }: Habi
                     <button
                       key={icon}
                       onClick={() => setSelectedIcon(icon)}
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all ${
-                        selectedIcon === icon
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all ${selectedIcon === icon
                           ? 'bg-primary/20 ring-2 ring-primary'
                           : 'bg-muted hover:bg-muted/80'
-                      }`}
+                        }`}
                     >
                       {icon}
                     </button>
                   ))}
                 </div>
               </div>
-              <Button onClick={handleAddHabit} className="w-full bg-gradient-gold text-primary-foreground">
+              <Button onClick={handleAddHabit} className="w-full bg-aura-gradient text-primary-foreground shadow-aura-glow">
                 Add Habit
               </Button>
             </div>
@@ -102,9 +119,8 @@ const HabitTracker = ({ habits, onToggleHabit, onAddHabit, onDeleteHabit }: Habi
               {daysOfWeek.map((day, index) => (
                 <th
                   key={day}
-                  className={`text-center text-sm font-medium pb-3 w-12 ${
-                    index === todayIndex ? 'text-primary' : 'text-muted-foreground'
-                  }`}
+                  className={`text-center text-sm font-medium pb-3 w-12 ${index === todayIndex ? 'text-primary' : 'text-muted-foreground'
+                    }`}
                 >
                   {day}
                 </th>
@@ -124,14 +140,14 @@ const HabitTracker = ({ habits, onToggleHabit, onAddHabit, onDeleteHabit }: Habi
                 {habit.completedDays.map((completed, dayIndex) => (
                   <td key={dayIndex} className="text-center py-3">
                     <button
-                      onClick={() => onToggleHabit(habit.id, dayIndex)}
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-                        completed
-                          ? 'bg-gradient-success shadow-sm'
+                      ref={el => buttonRefs.current[`${habit.id}-${dayIndex}`] = el}
+                      onClick={() => handleToggle(habit.id, dayIndex, completed)}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${completed
+                          ? 'bg-aura-gradient shadow-aura-glow'
                           : dayIndex === todayIndex
-                          ? 'bg-primary/20 hover:bg-primary/30 ring-1 ring-primary/50'
-                          : 'bg-muted hover:bg-muted/80'
-                      }`}
+                            ? 'bg-primary/20 hover:bg-primary/30 ring-2 ring-aura animate-pulse-glow'
+                            : 'bg-muted hover:bg-muted/80 hover:ring-2 hover:ring-aura/50'
+                        }`}
                     >
                       {completed && (
                         <Check className="w-4 h-4 text-accent-foreground animate-check" />
