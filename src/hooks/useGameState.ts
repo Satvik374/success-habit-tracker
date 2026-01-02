@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Task } from '@/components/TaskList';
 import { achievementDefinitions, Achievement } from '@/components/Achievements';
 import { toast } from 'sonner';
+import { useCelebration } from './useCelebration';
 
 interface Habit {
   id: string;
@@ -40,6 +41,9 @@ const defaultTasks: Task[] = [
 const getToday = () => new Date().toISOString().split('T')[0];
 
 export const useGameState = () => {
+  const celebration = useCelebration();
+  const prevLevelRef = useRef<number | null>(null);
+  
   const [state, setState] = useState<GameState>(() => {
     const saved = localStorage.getItem('habitTrackerGameState');
     if (saved) {
@@ -84,6 +88,14 @@ export const useGameState = () => {
     localStorage.setItem('habitTrackerGameState', JSON.stringify(state));
   }, [state]);
 
+  // Track level changes for celebration
+  useEffect(() => {
+    if (prevLevelRef.current !== null && state.level > prevLevelRef.current) {
+      celebration.triggerLevelUp(state.level);
+    }
+    prevLevelRef.current = state.level;
+  }, [state.level, celebration]);
+
   const unlockAchievement = useCallback((achievementId: string, currentUnlocked: string[]) => {
     if (currentUnlocked.includes(achievementId)) return false;
     
@@ -93,9 +105,10 @@ export const useGameState = () => {
         description: achievement.description,
         duration: 4000,
       });
+      celebration.triggerAchievement();
     }
     return true;
-  }, []);
+  }, [celebration]);
 
   const checkAndUnlockAchievements = useCallback((currentState: GameState): string[] => {
     const newUnlocks: string[] = [];
@@ -184,6 +197,11 @@ export const useGameState = () => {
       const wasCompleted = habit.completedDays[dayIndex];
       const xpChange = wasCompleted ? -15 : 15;
       
+      // Trigger celebration for completing (not uncompleting)
+      if (!wasCompleted) {
+        celebration.triggerHabitComplete();
+      }
+      
       const newHabits = prev.habits.map((h) =>
         h.id === habitId
           ? { ...h, completedDays: h.completedDays.map((c, i) => (i === dayIndex ? !c : c)) }
@@ -204,6 +222,16 @@ export const useGameState = () => {
       
       const newState = { ...prev, habits: newHabits, xp: newXP, level: newLevel, totalXpEarned: newTotalXp };
       const newUnlocks = checkAndUnlockAchievements(newState);
+      
+      // Check for perfect day
+      const todayIdx = new Date().getDay();
+      const adjustedIdx = todayIdx === 0 ? 6 : todayIdx - 1;
+      const habitsComplete = newState.habits.filter((h) => h.completedDays[adjustedIdx]).length;
+      const tasksComplete = newState.tasks.filter((t) => t.completed).length;
+      const totalItems = newState.habits.length + newState.tasks.length;
+      if (totalItems > 0 && habitsComplete + tasksComplete === totalItems && !wasCompleted) {
+        celebration.triggerPerfectDay();
+      }
       
       return {
         ...newState,
@@ -241,6 +269,11 @@ export const useGameState = () => {
       const wasCompleted = task.completed;
       const xpChange = wasCompleted ? -task.xpReward : task.xpReward;
       
+      // Trigger celebration for completing (not uncompleting)
+      if (!wasCompleted) {
+        celebration.triggerTaskComplete();
+      }
+      
       const newTasks = prev.tasks.map((t) =>
         t.id === taskId ? { ...t, completed: !t.completed } : t
       );
@@ -259,6 +292,16 @@ export const useGameState = () => {
       
       const newState = { ...prev, tasks: newTasks, xp: newXP, level: newLevel, totalXpEarned: newTotalXp };
       const newUnlocks = checkAndUnlockAchievements(newState);
+      
+      // Check for perfect day
+      const todayIdx = new Date().getDay();
+      const adjustedIdx = todayIdx === 0 ? 6 : todayIdx - 1;
+      const habitsComplete = newState.habits.filter((h) => h.completedDays[adjustedIdx]).length;
+      const tasksComplete = newState.tasks.filter((t) => t.completed).length;
+      const totalItems = newState.habits.length + newState.tasks.length;
+      if (totalItems > 0 && habitsComplete + tasksComplete === totalItems && !wasCompleted) {
+        celebration.triggerPerfectDay();
+      }
       
       return {
         ...newState,
