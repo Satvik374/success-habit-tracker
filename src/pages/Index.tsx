@@ -5,6 +5,7 @@ import HabitTracker from '@/components/HabitTracker';
 import TaskList from '@/components/TaskList';
 import ProgressRing from '@/components/ProgressRing';
 import { AchievementsGrid } from '@/components/Achievements';
+import ThemeToggle from '@/components/ThemeToggle';
 import { useGameState } from '@/hooks/useGameState';
 import { Calendar, Gamepad2, BarChart3 } from 'lucide-react';
 
@@ -49,6 +50,7 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             <Link
               to="/analytics"
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
