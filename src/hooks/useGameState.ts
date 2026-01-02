@@ -21,6 +21,8 @@ interface GameState {
   lastActiveDate: string;
   unlockedAchievements: string[];
   perfectDays: number;
+  totalTasksCompleted: number;
+  daysUsed: string[];
 }
 
 const XP_PER_LEVEL = 500;
@@ -46,9 +48,14 @@ export const useGameState = () => {
   
   const [state, setState] = useState<GameState>(() => {
     const saved = localStorage.getItem('habitTrackerGameState');
+    const today = getToday();
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed.lastActiveDate !== getToday()) {
+      // Track days used for dedication achievement
+      const existingDaysUsed = parsed.daysUsed || [];
+      const daysUsed = existingDaysUsed.includes(today) ? existingDaysUsed : [...existingDaysUsed, today];
+      
+      if (parsed.lastActiveDate !== today) {
         const resetHabits = parsed.habits.map((h: Habit) => ({
           ...h,
           completedDays: [false, false, false, false, false, false, false],
@@ -58,10 +65,12 @@ export const useGameState = () => {
           ...parsed,
           habits: resetHabits,
           tasks: resetTasks,
-          lastActiveDate: getToday(),
+          lastActiveDate: today,
           totalXpEarned: parsed.totalXpEarned || 0,
           unlockedAchievements: parsed.unlockedAchievements || [],
           perfectDays: parsed.perfectDays || 0,
+          totalTasksCompleted: parsed.totalTasksCompleted || 0,
+          daysUsed,
         };
       }
       return {
@@ -69,6 +78,8 @@ export const useGameState = () => {
         totalXpEarned: parsed.totalXpEarned || 0,
         unlockedAchievements: parsed.unlockedAchievements || [],
         perfectDays: parsed.perfectDays || 0,
+        totalTasksCompleted: parsed.totalTasksCompleted || 0,
+        daysUsed,
       };
     }
     return {
@@ -78,9 +89,11 @@ export const useGameState = () => {
       streak: 1,
       habits: defaultHabits,
       tasks: defaultTasks,
-      lastActiveDate: getToday(),
+      lastActiveDate: today,
       unlockedAchievements: [],
       perfectDays: 0,
+      totalTasksCompleted: 0,
+      daysUsed: [today],
     };
   });
 
@@ -110,81 +123,85 @@ export const useGameState = () => {
     return true;
   }, [celebration]);
 
-  const checkAndUnlockAchievements = useCallback((currentState: GameState): string[] => {
+  const checkAndUnlockAchievements = useCallback((currentState: GameState, isTaskCompletion = false): string[] => {
     const newUnlocks: string[] = [];
+    const allUnlocked = [...currentState.unlockedAchievements];
     const todayIndex = new Date().getDay();
     const adjustedIndex = todayIndex === 0 ? 6 : todayIndex - 1;
+    const currentHour = new Date().getHours();
+    const isWeekend = todayIndex === 0 || todayIndex === 6;
     
-    // Check first habit
+    const tryUnlock = (id: string) => {
+      if (!allUnlocked.includes(id) && !newUnlocks.includes(id)) {
+        if (unlockAchievement(id, [...allUnlocked, ...newUnlocks])) {
+          newUnlocks.push(id);
+          return true;
+        }
+      }
+      return false;
+    };
+    
+    // First habit
     const anyHabitComplete = currentState.habits.some((h) => h.completedDays.some(Boolean));
-    if (anyHabitComplete && !currentState.unlockedAchievements.includes('first_habit')) {
-      if (unlockAchievement('first_habit', currentState.unlockedAchievements)) {
-        newUnlocks.push('first_habit');
-      }
-    }
+    if (anyHabitComplete) tryUnlock('first_habit');
     
-    // Check first task
+    // First task
     const anyTaskComplete = currentState.tasks.some((t) => t.completed);
-    if (anyTaskComplete && !currentState.unlockedAchievements.includes('first_task') && !newUnlocks.includes('first_task')) {
-      if (unlockAchievement('first_task', [...currentState.unlockedAchievements, ...newUnlocks])) {
-        newUnlocks.push('first_task');
-      }
-    }
+    if (anyTaskComplete) tryUnlock('first_task');
     
-    // Check streak achievements
-    if (currentState.streak >= 3 && !currentState.unlockedAchievements.includes('streak_3') && !newUnlocks.includes('streak_3')) {
-      if (unlockAchievement('streak_3', [...currentState.unlockedAchievements, ...newUnlocks])) {
-        newUnlocks.push('streak_3');
-      }
-    }
-    if (currentState.streak >= 7 && !currentState.unlockedAchievements.includes('streak_7') && !newUnlocks.includes('streak_7')) {
-      if (unlockAchievement('streak_7', [...currentState.unlockedAchievements, ...newUnlocks])) {
-        newUnlocks.push('streak_7');
-      }
-    }
+    // Streak achievements
+    if (currentState.streak >= 3) tryUnlock('streak_3');
+    if (currentState.streak >= 7) tryUnlock('streak_7');
+    if (currentState.streak >= 14) tryUnlock('streak_14');
+    if (currentState.streak >= 30) tryUnlock('streak_30');
     
-    // Check level achievements
-    if (currentState.level >= 5 && !currentState.unlockedAchievements.includes('level_5') && !newUnlocks.includes('level_5')) {
-      if (unlockAchievement('level_5', [...currentState.unlockedAchievements, ...newUnlocks])) {
-        newUnlocks.push('level_5');
-      }
-    }
-    if (currentState.level >= 10 && !currentState.unlockedAchievements.includes('level_10') && !newUnlocks.includes('level_10')) {
-      if (unlockAchievement('level_10', [...currentState.unlockedAchievements, ...newUnlocks])) {
-        newUnlocks.push('level_10');
-      }
-    }
+    // Level achievements
+    if (currentState.level >= 5) tryUnlock('level_5');
+    if (currentState.level >= 10) tryUnlock('level_10');
+    if (currentState.level >= 20) tryUnlock('level_20');
+    if (currentState.level >= 50) tryUnlock('level_50');
     
-    // Check XP achievements
-    if (currentState.totalXpEarned >= 500 && !currentState.unlockedAchievements.includes('xp_500') && !newUnlocks.includes('xp_500')) {
-      if (unlockAchievement('xp_500', [...currentState.unlockedAchievements, ...newUnlocks])) {
-        newUnlocks.push('xp_500');
-      }
-    }
-    if (currentState.totalXpEarned >= 2000 && !currentState.unlockedAchievements.includes('xp_2000') && !newUnlocks.includes('xp_2000')) {
-      if (unlockAchievement('xp_2000', [...currentState.unlockedAchievements, ...newUnlocks])) {
-        newUnlocks.push('xp_2000');
-      }
-    }
+    // XP achievements
+    if (currentState.totalXpEarned >= 500) tryUnlock('xp_500');
+    if (currentState.totalXpEarned >= 2000) tryUnlock('xp_2000');
+    if (currentState.totalXpEarned >= 5000) tryUnlock('xp_5000');
+    if (currentState.totalXpEarned >= 10000) tryUnlock('xp_10000');
     
-    // Check habit count
-    if (currentState.habits.length >= 5 && !currentState.unlockedAchievements.includes('habits_5') && !newUnlocks.includes('habits_5')) {
-      if (unlockAchievement('habits_5', [...currentState.unlockedAchievements, ...newUnlocks])) {
-        newUnlocks.push('habits_5');
-      }
-    }
+    // Habit count achievements
+    if (currentState.habits.length >= 5) tryUnlock('habits_5');
+    if (currentState.habits.length >= 10) tryUnlock('habits_10');
     
-    // Check perfect day
+    // Task completion achievements
+    if (currentState.totalTasksCompleted >= 10) tryUnlock('tasks_10');
+    if (currentState.totalTasksCompleted >= 50) tryUnlock('tasks_50');
+    if (currentState.totalTasksCompleted >= 100) tryUnlock('tasks_100');
+    
+    // Perfect day check
     const habitsCompleted = currentState.habits.filter((h) => h.completedDays[adjustedIndex]).length;
     const tasksCompleted = currentState.tasks.filter((t) => t.completed).length;
     const totalItems = currentState.habits.length + currentState.tasks.length;
     if (totalItems > 0 && habitsCompleted + tasksCompleted === totalItems) {
-      if (!currentState.unlockedAchievements.includes('perfect_day') && !newUnlocks.includes('perfect_day')) {
-        if (unlockAchievement('perfect_day', [...currentState.unlockedAchievements, ...newUnlocks])) {
-          newUnlocks.push('perfect_day');
-        }
-      }
+      tryUnlock('perfect_day');
     }
+    
+    // Perfect week/month (based on perfectDays count)
+    if (currentState.perfectDays >= 7) tryUnlock('perfect_week');
+    if (currentState.perfectDays >= 30) tryUnlock('perfect_month');
+    
+    // Time-based achievements (only when completing tasks)
+    if (isTaskCompletion) {
+      if (currentHour < 7) tryUnlock('early_bird');
+      if (currentHour >= 23) tryUnlock('night_owl');
+    }
+    
+    // Weekend warrior - all habits complete on weekend
+    if (isWeekend && currentState.habits.length > 0) {
+      const allHabitsToday = currentState.habits.every((h) => h.completedDays[adjustedIndex]);
+      if (allHabitsToday) tryUnlock('weekend_warrior');
+    }
+    
+    // Dedication - used app on 7 different days
+    if (currentState.daysUsed.length >= 7) tryUnlock('dedication');
     
     return newUnlocks;
   }, [unlockAchievement]);
@@ -268,6 +285,7 @@ export const useGameState = () => {
       
       const wasCompleted = task.completed;
       const xpChange = wasCompleted ? -task.xpReward : task.xpReward;
+      const taskCountChange = wasCompleted ? 0 : 1; // Only increment, never decrement total
       
       // Trigger celebration for completing (not uncompleting)
       if (!wasCompleted) {
@@ -281,6 +299,7 @@ export const useGameState = () => {
       let newXP = prev.xp + xpChange;
       let newLevel = prev.level;
       const newTotalXp = prev.totalXpEarned + (xpChange > 0 ? xpChange : 0);
+      const newTotalTasksCompleted = prev.totalTasksCompleted + taskCountChange;
       
       if (newXP >= XP_PER_LEVEL) {
         newXP -= XP_PER_LEVEL;
@@ -290,18 +309,29 @@ export const useGameState = () => {
         newXP = 0;
       }
       
-      const newState = { ...prev, tasks: newTasks, xp: newXP, level: newLevel, totalXpEarned: newTotalXp };
-      const newUnlocks = checkAndUnlockAchievements(newState);
-      
       // Check for perfect day
       const todayIdx = new Date().getDay();
       const adjustedIdx = todayIdx === 0 ? 6 : todayIdx - 1;
-      const habitsComplete = newState.habits.filter((h) => h.completedDays[adjustedIdx]).length;
-      const tasksComplete = newState.tasks.filter((t) => t.completed).length;
-      const totalItems = newState.habits.length + newState.tasks.length;
-      if (totalItems > 0 && habitsComplete + tasksComplete === totalItems && !wasCompleted) {
+      const habitsComplete = prev.habits.filter((h) => h.completedDays[adjustedIdx]).length;
+      const tasksComplete = newTasks.filter((t) => t.completed).length;
+      const totalItems = prev.habits.length + newTasks.length;
+      const isPerfectDay = totalItems > 0 && habitsComplete + tasksComplete === totalItems;
+      const newPerfectDays = isPerfectDay && !wasCompleted ? prev.perfectDays + 1 : prev.perfectDays;
+      
+      if (isPerfectDay && !wasCompleted) {
         celebration.triggerPerfectDay();
       }
+      
+      const newState = { 
+        ...prev, 
+        tasks: newTasks, 
+        xp: newXP, 
+        level: newLevel, 
+        totalXpEarned: newTotalXp,
+        totalTasksCompleted: newTotalTasksCompleted,
+        perfectDays: newPerfectDays,
+      };
+      const newUnlocks = checkAndUnlockAchievements(newState, !wasCompleted);
       
       return {
         ...newState,

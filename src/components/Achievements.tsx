@@ -1,4 +1,4 @@
-import { Trophy, Flame, Star, Zap, Target, Crown, Medal, Rocket, Award, Lock } from 'lucide-react';
+import { Trophy, Flame, Star, Zap, Target, Crown, Medal, Rocket, Award, Lock, Calendar, Sparkles, TrendingUp, Heart, Brain, Coffee, Moon, Sun, Dumbbell, BookOpen } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
 
 export interface Achievement {
@@ -12,6 +12,7 @@ export interface Achievement {
 }
 
 export const achievementDefinitions: Omit<Achievement, 'unlocked' | 'unlockedAt'>[] = [
+  // Getting Started
   {
     id: 'first_habit',
     name: 'Getting Started',
@@ -26,6 +27,7 @@ export const achievementDefinitions: Omit<Achievement, 'unlocked' | 'unlockedAt'
     icon: Target,
     requirement: 'Complete 1 task',
   },
+  // Streaks
   {
     id: 'streak_3',
     name: 'On Fire',
@@ -41,6 +43,21 @@ export const achievementDefinitions: Omit<Achievement, 'unlocked' | 'unlockedAt'
     requirement: '7-day streak',
   },
   {
+    id: 'streak_14',
+    name: 'Unstoppable',
+    description: 'Maintain a 14-day streak',
+    icon: Rocket,
+    requirement: '14-day streak',
+  },
+  {
+    id: 'streak_30',
+    name: 'Monthly Master',
+    description: 'Maintain a 30-day streak',
+    icon: Calendar,
+    requirement: '30-day streak',
+  },
+  // Levels
+  {
     id: 'level_5',
     name: 'Rising Star',
     description: 'Reach level 5',
@@ -55,12 +72,42 @@ export const achievementDefinitions: Omit<Achievement, 'unlocked' | 'unlockedAt'
     requirement: 'Reach Level 10',
   },
   {
+    id: 'level_20',
+    name: 'Legendary',
+    description: 'Reach level 20',
+    icon: Sparkles,
+    requirement: 'Reach Level 20',
+  },
+  {
+    id: 'level_50',
+    name: 'Grandmaster',
+    description: 'Reach level 50',
+    icon: Crown,
+    requirement: 'Reach Level 50',
+  },
+  // Perfect Days
+  {
     id: 'perfect_day',
     name: 'Perfect Day',
     description: 'Complete 100% of habits & tasks in a day',
     icon: Trophy,
     requirement: '100% daily completion',
   },
+  {
+    id: 'perfect_week',
+    name: 'Flawless Week',
+    description: 'Achieve 7 perfect days',
+    icon: Star,
+    requirement: '7 perfect days total',
+  },
+  {
+    id: 'perfect_month',
+    name: 'Perfection Pro',
+    description: 'Achieve 30 perfect days',
+    icon: Trophy,
+    requirement: '30 perfect days total',
+  },
+  // XP Milestones
   {
     id: 'xp_500',
     name: 'XP Hunter',
@@ -76,11 +123,84 @@ export const achievementDefinitions: Omit<Achievement, 'unlocked' | 'unlockedAt'
     requirement: 'Earn 2000 XP',
   },
   {
+    id: 'xp_5000',
+    name: 'XP Legend',
+    description: 'Earn 5000 total XP',
+    icon: TrendingUp,
+    requirement: 'Earn 5000 XP',
+  },
+  {
+    id: 'xp_10000',
+    name: 'XP Titan',
+    description: 'Earn 10000 total XP',
+    icon: Sparkles,
+    requirement: 'Earn 10000 XP',
+  },
+  // Habits
+  {
     id: 'habits_5',
     name: 'Habit Builder',
     description: 'Create 5 different habits',
     icon: Rocket,
     requirement: 'Create 5 habits',
+  },
+  {
+    id: 'habits_10',
+    name: 'Habit Architect',
+    description: 'Create 10 different habits',
+    icon: Brain,
+    requirement: 'Create 10 habits',
+  },
+  // Tasks
+  {
+    id: 'tasks_10',
+    name: 'Task Tackler',
+    description: 'Complete 10 tasks total',
+    icon: Target,
+    requirement: 'Complete 10 tasks',
+  },
+  {
+    id: 'tasks_50',
+    name: 'Task Champion',
+    description: 'Complete 50 tasks total',
+    icon: Medal,
+    requirement: 'Complete 50 tasks',
+  },
+  {
+    id: 'tasks_100',
+    name: 'Task Titan',
+    description: 'Complete 100 tasks total',
+    icon: Award,
+    requirement: 'Complete 100 tasks',
+  },
+  // Special
+  {
+    id: 'early_bird',
+    name: 'Early Bird',
+    description: 'Complete a task before 7 AM',
+    icon: Sun,
+    requirement: 'Complete task before 7 AM',
+  },
+  {
+    id: 'night_owl',
+    name: 'Night Owl',
+    description: 'Complete a task after 11 PM',
+    icon: Moon,
+    requirement: 'Complete task after 11 PM',
+  },
+  {
+    id: 'weekend_warrior',
+    name: 'Weekend Warrior',
+    description: 'Complete all habits on a weekend',
+    icon: Coffee,
+    requirement: 'All habits on Sat or Sun',
+  },
+  {
+    id: 'dedication',
+    name: 'Dedicated',
+    description: 'Use the app for 7 different days',
+    icon: Heart,
+    requirement: 'Open app on 7 days',
   },
 ];
 
