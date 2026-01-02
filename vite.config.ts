@@ -8,6 +8,10 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: [
+      "localhost",
+      ".onrender.com", // Allow all Render.com subdomains
+    ],
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
