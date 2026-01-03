@@ -11,6 +11,8 @@ import AuraThemeSelector from '@/components/AuraThemeSelector';
 import ParticleEffect from '@/components/ParticleEffect';
 import UserMenu from '@/components/UserMenu';
 import AuthModal from '@/components/auth/AuthModal';
+import SettingsPanel from '@/components/SettingsPanel';
+import Challenges from '@/components/Challenges';
 import { useGameState } from '@/hooks/useGameState';
 import { useParticles } from '@/hooks/useParticles';
 import { useAuth } from '@/contexts/AuthContext';
@@ -85,6 +87,7 @@ const Index = () => {
                 <span className="hidden md:inline">Sign In</span>
               </Button>
             )}
+            <SettingsPanel />
             <AuraThemeSelector />
             <ThemeToggle />
             <Link
@@ -133,6 +136,17 @@ const Index = () => {
                       : "Every task counts. Start small! ⭐"}
               </p>
             </div>
+
+            {/* Challenges */}
+            <Challenges
+              tasksCompleted={tasks.filter(t => t.completed).length}
+              habitsCompleted={habits.filter(h => {
+                const todayIndex = new Date().getDay();
+                const adjustedIndex = todayIndex === 0 ? 6 : todayIndex - 1;
+                return h.completedDays[adjustedIndex];
+              }).length}
+              streak={streak}
+            />
           </div>
 
           {/* Right Column - Trackers */}

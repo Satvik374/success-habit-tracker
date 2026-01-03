@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import confetti from 'canvas-confetti';
+import { useSettings } from '@/contexts/SettingsContext';
 
 // Simple synth sounds using Web Audio API
 const playSound = (type: 'complete' | 'levelUp' | 'achievement') => {
@@ -60,101 +61,123 @@ const playSound = (type: 'complete' | 'levelUp' | 'achievement') => {
 };
 
 export const useCelebration = () => {
+  const { settings } = useSettings();
+
   const triggerTaskComplete = useCallback(() => {
-    playSound('complete');
+    if (settings.soundEnabled) {
+      playSound('complete');
+    }
     
-    // Small burst of confetti from cursor area
-    confetti({
-      particleCount: 30,
-      spread: 60,
-      origin: { y: 0.7 },
-      colors: ['#f59e0b', '#fbbf24', '#fcd34d'],
-      scalar: 0.8,
-    });
-  }, []);
+    if (settings.confettiEnabled) {
+      // Small burst of confetti from cursor area
+      confetti({
+        particleCount: 30,
+        spread: 60,
+        origin: { y: 0.7 },
+        colors: ['#f59e0b', '#fbbf24', '#fcd34d'],
+        scalar: 0.8,
+      });
+    }
+  }, [settings.soundEnabled, settings.confettiEnabled]);
 
   const triggerHabitComplete = useCallback(() => {
-    playSound('complete');
+    if (settings.soundEnabled) {
+      playSound('complete');
+    }
     
-    // Gentle confetti for habits
-    confetti({
-      particleCount: 20,
-      spread: 45,
-      origin: { y: 0.6 },
-      colors: ['#10b981', '#34d399', '#6ee7b7'],
-      scalar: 0.7,
-    });
-  }, []);
+    if (settings.confettiEnabled) {
+      // Gentle confetti for habits
+      confetti({
+        particleCount: 20,
+        spread: 45,
+        origin: { y: 0.6 },
+        colors: ['#10b981', '#34d399', '#6ee7b7'],
+        scalar: 0.7,
+      });
+    }
+  }, [settings.soundEnabled, settings.confettiEnabled]);
 
   const triggerLevelUp = useCallback((level: number) => {
-    playSound('levelUp');
+    if (settings.soundEnabled) {
+      playSound('levelUp');
+    }
     
-    // Epic confetti explosion for level up
-    const duration = 2000;
-    const end = Date.now() + duration;
+    if (settings.confettiEnabled) {
+      // Epic confetti explosion for level up
+      const duration = 2000;
+      const end = Date.now() + duration;
 
-    const frame = () => {
-      confetti({
-        particleCount: 4,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0 },
-        colors: ['#f59e0b', '#fbbf24', '#fcd34d', '#fff'],
-      });
-      confetti({
-        particleCount: 4,
-        angle: 120,
-        spread: 55,
-        origin: { x: 1 },
-        colors: ['#f59e0b', '#fbbf24', '#fcd34d', '#fff'],
-      });
+      const frame = () => {
+        confetti({
+          particleCount: 4,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+          colors: ['#f59e0b', '#fbbf24', '#fcd34d', '#fff'],
+        });
+        confetti({
+          particleCount: 4,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+          colors: ['#f59e0b', '#fbbf24', '#fcd34d', '#fff'],
+        });
 
-      if (Date.now() < end) {
-        requestAnimationFrame(frame);
-      }
-    };
-    frame();
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      };
+      frame();
 
-    // Center burst
-    setTimeout(() => {
-      confetti({
-        particleCount: 100,
-        spread: 100,
-        origin: { y: 0.5 },
-        colors: ['#f59e0b', '#fbbf24', '#fcd34d', '#10b981', '#fff'],
-        scalar: 1.2,
-      });
-    }, 300);
-  }, []);
+      // Center burst
+      setTimeout(() => {
+        confetti({
+          particleCount: 100,
+          spread: 100,
+          origin: { y: 0.5 },
+          colors: ['#f59e0b', '#fbbf24', '#fcd34d', '#10b981', '#fff'],
+          scalar: 1.2,
+        });
+      }, 300);
+    }
+  }, [settings.soundEnabled, settings.confettiEnabled]);
 
   const triggerAchievement = useCallback(() => {
-    playSound('achievement');
+    if (settings.soundEnabled) {
+      playSound('achievement');
+    }
     
-    // Starry confetti for achievements
-    confetti({
-      particleCount: 60,
-      spread: 80,
-      origin: { y: 0.6 },
-      colors: ['#8b5cf6', '#a78bfa', '#c4b5fd', '#fbbf24', '#fff'],
-      shapes: ['star', 'circle'],
-      scalar: 1,
-    });
-  }, []);
+    if (settings.confettiEnabled) {
+      // Starry confetti for achievements
+      confetti({
+        particleCount: 60,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#8b5cf6', '#a78bfa', '#c4b5fd', '#fbbf24', '#fff'],
+        shapes: ['star', 'circle'],
+        scalar: 1,
+      });
+    }
+  }, [settings.soundEnabled, settings.confettiEnabled]);
 
   const triggerPerfectDay = useCallback(() => {
-    playSound('levelUp');
+    if (settings.soundEnabled) {
+      playSound('levelUp');
+    }
     
-    // Rainbow explosion for perfect day
-    const colors = ['#ef4444', '#f97316', '#fbbf24', '#22c55e', '#3b82f6', '#8b5cf6'];
-    
-    confetti({
-      particleCount: 150,
-      spread: 180,
-      origin: { y: 0.5 },
-      colors,
-      scalar: 1.3,
-    });
-  }, []);
+    if (settings.confettiEnabled) {
+      // Rainbow explosion for perfect day
+      const colors = ['#ef4444', '#f97316', '#fbbf24', '#22c55e', '#3b82f6', '#8b5cf6'];
+      
+      confetti({
+        particleCount: 150,
+        spread: 180,
+        origin: { y: 0.5 },
+        colors,
+        scalar: 1.3,
+      });
+    }
+  }, [settings.soundEnabled, settings.confettiEnabled]);
 
   return {
     triggerTaskComplete,
