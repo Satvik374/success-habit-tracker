@@ -395,6 +395,17 @@ export const useGameState = () => {
     setState((prev) => ({ ...prev, habits: prev.habits.filter((h) => h.id !== habitId) }));
   };
 
+  const editHabit = (habitId: string, newName?: string, newIcon?: string) => {
+    setState((prev) => ({
+      ...prev,
+      habits: prev.habits.map((h) =>
+        h.id === habitId
+          ? { ...h, name: newName || h.name, icon: newIcon || h.icon }
+          : h
+      ),
+    }));
+  };
+
   const toggleTask = (taskId: string) => {
     setState((prev) => {
       const task = prev.tasks.find((t) => t.id === taskId);
@@ -499,6 +510,7 @@ export const useGameState = () => {
     toggleHabit,
     addHabit,
     deleteHabit,
+    editHabit,
     toggleTask,
     addTask,
     deleteTask,

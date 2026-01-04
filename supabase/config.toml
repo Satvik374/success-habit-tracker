@@ -1,0 +1,4 @@
+project_id = "ngmqybdsdxsszxnfaenk"
+
+[functions.quest-ai-chat]
+verify_jwt = false

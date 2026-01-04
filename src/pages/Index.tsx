@@ -13,6 +13,7 @@ import UserMenu from '@/components/UserMenu';
 import AuthModal from '@/components/auth/AuthModal';
 import SettingsPanel from '@/components/SettingsPanel';
 import Challenges from '@/components/Challenges';
+import AIChat from '@/components/AIChat';
 import { useGameState } from '@/hooks/useGameState';
 import { useParticles } from '@/hooks/useParticles';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,6 +35,7 @@ const Index = () => {
     toggleHabit,
     addHabit,
     deleteHabit,
+    editHabit,
     toggleTask,
     addTask,
     deleteTask,
@@ -177,6 +179,15 @@ const Index = () => {
 
       {/* Auth Modal */}
       <AuthModal open={showAuthModal} onOpenChange={setShowAuthModal} />
+
+      {/* AI Chat */}
+      <AIChat
+        habits={habits}
+        onAddTask={addTask}
+        onAddHabit={addHabit}
+        onEditHabit={editHabit}
+        onDeleteHabit={deleteHabit}
+      />
     </div>
   );
 };
