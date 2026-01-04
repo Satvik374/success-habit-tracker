@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, Sparkles, Loader2 } from 'lucide-react';
+import { Bot, Send, X, Sparkles, Loader2, Check, X as XIcon, Zap, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -7,10 +7,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 
+interface Suggestion {
+  id: string;
+  type: 'task' | 'habit';
+  title: string;
+  icon?: string;
+  priority?: 'low' | 'medium' | 'high';
+  reason: string;
+  status: 'pending' | 'accepted' | 'dismissed';
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  suggestions?: Suggestion[];
 }
 
 interface Habit {
@@ -34,7 +45,7 @@ const AIChat = ({ habits, onAddTask, onAddHabit, onEditHabit, onDeleteHabit }: A
     {
       id: '1',
       role: 'assistant',
-      content: "Hey there, adventurer! 🎮 I'm Quest AI, your productivity companion. I can help you add quests, manage habits, and answer questions about the app. What would you like to do today?",
+      content: "Hey there, adventurer! 🎮 I'm Quest AI, your productivity companion. I can help you add quests, manage habits, and suggest improvements. Try asking me to suggest some habits or tasks!",
     },
   ]);
   const [input, setInput] = useState('');
@@ -47,7 +58,45 @@ const AIChat = ({ habits, onAddTask, onAddHabit, onEditHabit, onDeleteHabit }: A
     }
   }, [messages]);
 
-  const handleToolCalls = (toolCalls: any[]) => {
+  const handleAcceptSuggestion = (messageId: string, suggestion: Suggestion) => {
+    if (suggestion.type === 'task') {
+      onAddTask(suggestion.title, suggestion.priority || 'medium');
+      toast.success(`Quest added: "${suggestion.title}" (+${suggestion.priority === 'high' ? 50 : suggestion.priority === 'medium' ? 25 : 10} XP)`);
+    } else {
+      onAddHabit(suggestion.title, suggestion.icon || '⭐');
+      toast.success(`New habit added: ${suggestion.icon || '⭐'} ${suggestion.title}`);
+    }
+
+    setMessages(prev => prev.map(msg => {
+      if (msg.id === messageId && msg.suggestions) {
+        return {
+          ...msg,
+          suggestions: msg.suggestions.map(s => 
+            s.id === suggestion.id ? { ...s, status: 'accepted' as const } : s
+          )
+        };
+      }
+      return msg;
+    }));
+  };
+
+  const handleDismissSuggestion = (messageId: string, suggestionId: string) => {
+    setMessages(prev => prev.map(msg => {
+      if (msg.id === messageId && msg.suggestions) {
+        return {
+          ...msg,
+          suggestions: msg.suggestions.map(s => 
+            s.id === suggestionId ? { ...s, status: 'dismissed' as const } : s
+          )
+        };
+      }
+      return msg;
+    }));
+  };
+
+  const handleToolCalls = (toolCalls: any[], messageId: string): Suggestion[] | null => {
+    let suggestions: Suggestion[] | null = null;
+    
     toolCalls.forEach((tool) => {
       switch (tool.name) {
         case 'add_task':
@@ -66,8 +115,21 @@ const AIChat = ({ habits, onAddTask, onAddHabit, onEditHabit, onDeleteHabit }: A
           onDeleteHabit(tool.arguments.habitId);
           toast.success('Habit removed from tracking');
           break;
+        case 'suggest_items':
+          suggestions = tool.arguments.suggestions.map((s: any, index: number) => ({
+            id: `${messageId}-suggestion-${index}`,
+            type: s.type,
+            title: s.title,
+            icon: s.icon,
+            priority: s.priority,
+            reason: s.reason,
+            status: 'pending'
+          }));
+          break;
       }
     });
+
+    return suggestions;
   };
 
   const sendMessage = async () => {
@@ -103,15 +165,19 @@ const AIChat = ({ habits, onAddTask, onAddHabit, onEditHabit, onDeleteHabit }: A
         return;
       }
 
+      const messageId = (Date.now() + 1).toString();
+      let suggestions: Suggestion[] | null = null;
+
       // Handle tool calls if present
       if (data.toolCalls && data.toolCalls.length > 0) {
-        handleToolCalls(data.toolCalls);
+        suggestions = handleToolCalls(data.toolCalls, messageId);
       }
 
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: messageId,
         role: 'assistant',
         content: data.content,
+        suggestions: suggestions || undefined,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -127,6 +193,15 @@ const AIChat = ({ habits, onAddTask, onAddHabit, onEditHabit, onDeleteHabit }: A
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
+    }
+  };
+
+  const getPriorityColor = (priority?: string) => {
+    switch (priority) {
+      case 'high': return 'text-red-500';
+      case 'medium': return 'text-yellow-500';
+      case 'low': return 'text-green-500';
+      default: return 'text-muted-foreground';
     }
   };
 
@@ -164,25 +239,107 @@ const AIChat = ({ habits, onAddTask, onAddHabit, onEditHabit, onDeleteHabit }: A
           <ScrollArea className="flex-1 p-4" ref={scrollRef}>
             <div className="space-y-4">
               {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
+                <div key={message.id}>
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground rounded-br-md'
-                        : 'bg-muted text-foreground rounded-bl-md'
-                    }`}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    {message.role === 'user' ? (
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    ) : (
-                      <div className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-code:bg-background/50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-background/50 prose-pre:p-2 prose-strong:text-foreground">
-                        <ReactMarkdown>{message.content}</ReactMarkdown>
-                      </div>
-                    )}
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                        message.role === 'user'
+                          ? 'bg-primary text-primary-foreground rounded-br-md'
+                          : 'bg-muted text-foreground rounded-bl-md'
+                      }`}
+                    >
+                      {message.role === 'user' ? (
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      ) : (
+                        <div className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-code:bg-background/50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-background/50 prose-pre:p-2 prose-strong:text-foreground">
+                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        </div>
+                      )}
+                    </div>
                   </div>
+                  
+                  {/* Suggestion Cards */}
+                  {message.suggestions && message.suggestions.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {message.suggestions.map((suggestion) => (
+                        <div
+                          key={suggestion.id}
+                          className={`rounded-xl border p-3 transition-all ${
+                            suggestion.status === 'accepted'
+                              ? 'bg-green-500/10 border-green-500/30'
+                              : suggestion.status === 'dismissed'
+                              ? 'bg-muted/50 border-border/50 opacity-50'
+                              : 'bg-card border-border hover:border-primary/50'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                              suggestion.type === 'task' ? 'bg-primary/10' : 'bg-secondary/50'
+                            }`}>
+                              {suggestion.type === 'task' ? (
+                                <Target className={`w-5 h-5 ${getPriorityColor(suggestion.priority)}`} />
+                              ) : (
+                                <span className="text-xl">{suggestion.icon || '⭐'}</span>
+                              )}
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-sm text-foreground truncate">
+                                  {suggestion.title}
+                                </span>
+                                {suggestion.type === 'task' && suggestion.priority && (
+                                  <span className={`text-xs px-1.5 py-0.5 rounded ${getPriorityColor(suggestion.priority)} bg-current/10`}>
+                                    {suggestion.priority}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                {suggestion.reason}
+                              </p>
+                              
+                              {suggestion.status === 'pending' && (
+                                <div className="flex gap-2 mt-2">
+                                  <Button
+                                    size="sm"
+                                    className="h-7 px-3 bg-green-600 hover:bg-green-700 text-white"
+                                    onClick={() => handleAcceptSuggestion(message.id, suggestion)}
+                                  >
+                                    <Check className="w-3 h-3 mr-1" />
+                                    Accept
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 px-3"
+                                    onClick={() => handleDismissSuggestion(message.id, suggestion.id)}
+                                  >
+                                    <XIcon className="w-3 h-3 mr-1" />
+                                    Dismiss
+                                  </Button>
+                                </div>
+                              )}
+                              
+                              {suggestion.status === 'accepted' && (
+                                <div className="flex items-center gap-1 mt-2 text-green-600 text-xs">
+                                  <Check className="w-3 h-3" />
+                                  Added to your {suggestion.type === 'task' ? 'quests' : 'habits'}!
+                                </div>
+                              )}
+                              
+                              {suggestion.status === 'dismissed' && (
+                                <div className="text-muted-foreground text-xs mt-2">
+                                  Dismissed
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               {isLoading && (
@@ -216,7 +373,7 @@ const AIChat = ({ habits, onAddTask, onAddHabit, onEditHabit, onDeleteHabit }: A
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-2 text-center">
-              Try: "Add a quest to learn TypeScript" or "Create a habit for journaling"
+              Try: "Suggest some habits for better health" or "What tasks should I add?"
             </p>
           </div>
         </div>
