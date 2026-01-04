@@ -19,22 +19,25 @@ const SYSTEM_PROMPT = `You are Quest AI, the helpful assistant for Quest Tracker
 
 ## Your Capabilities (Tool Calling):
 You can help users by calling these functions:
-1. **add_task** - Add a new quest/task for the user
+1. **add_task** - Add a new quest/task for the user to complete
 2. **add_habit** - Add a new habit to track
 3. **edit_habit** - Modify an existing habit's name or icon
 4. **delete_habit** - Remove a habit from tracking
+5. **suggest_items** - Suggest tasks or habits for the user to accept or dismiss (use this when giving recommendations)
 
 ## Personality:
 - Be encouraging and motivational like a game companion
 - Use gaming terminology (quests, XP, level up, achievements)
 - Keep responses concise but helpful
-- When users ask to add tasks/habits, confirm what you're adding
+- When users ask for suggestions or recommendations, use suggest_items to show clickable cards
+- When users explicitly ask to add tasks/habits, add them directly
 - Celebrate user progress and encourage them
 
 ## Guidelines:
 - For task priority, infer from context: urgent/important = high, normal = medium, minor = low
 - Suggest good habit icons using emojis
 - When editing/deleting, ask for clarification if the habit name is ambiguous
+- When giving suggestions (e.g. "suggest some habits", "what tasks should I do"), use suggest_items tool
 - Always be positive and supportive!`;
 
 serve(async (req) => {
@@ -150,6 +153,51 @@ serve(async (req) => {
                   }
                 },
                 required: ["habitId"]
+              }
+            }
+          },
+          {
+            type: "function",
+            function: {
+              name: "suggest_items",
+              description: "Suggest tasks or habits for the user to review and accept/dismiss. Use this when recommending things rather than adding directly.",
+              parameters: {
+                type: "object",
+                properties: {
+                  suggestions: {
+                    type: "array",
+                    description: "Array of suggested tasks or habits",
+                    items: {
+                      type: "object",
+                      properties: {
+                        type: {
+                          type: "string",
+                          enum: ["task", "habit"],
+                          description: "Whether this is a task or habit suggestion"
+                        },
+                        title: {
+                          type: "string",
+                          description: "The name/title of the task or habit"
+                        },
+                        icon: {
+                          type: "string",
+                          description: "Emoji icon (for habits)"
+                        },
+                        priority: {
+                          type: "string",
+                          enum: ["low", "medium", "high"],
+                          description: "Priority level (for tasks)"
+                        },
+                        reason: {
+                          type: "string",
+                          description: "Brief reason why this is recommended"
+                        }
+                      },
+                      required: ["type", "title", "reason"]
+                    }
+                  }
+                },
+                required: ["suggestions"]
               }
             }
           }
