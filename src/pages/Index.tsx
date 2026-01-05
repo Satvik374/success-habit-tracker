@@ -14,15 +14,19 @@ import AuthModal from '@/components/auth/AuthModal';
 import SettingsPanel from '@/components/SettingsPanel';
 import Challenges from '@/components/Challenges';
 import AIChat from '@/components/AIChat';
+import PricingModal from '@/components/PricingModal';
 import { useGameState } from '@/hooks/useGameState';
 import { useParticles } from '@/hooks/useParticles';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, Gamepad2, BarChart3, LogIn } from 'lucide-react';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { Calendar, Gamepad2, BarChart3, LogIn, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
+  const { isPremium } = useSubscription();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
   const {
     level,
     xp,
@@ -78,6 +82,16 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {!isPremium && (
+              <Button
+                onClick={() => setShowPricingModal(true)}
+                variant="outline"
+                className="flex items-center gap-2 border-yellow-500/50 text-yellow-600 hover:bg-yellow-500/10"
+              >
+                <Crown className="w-4 h-4" />
+                <span className="hidden md:inline">Upgrade</span>
+              </Button>
+            )}
             {user ? (
               <UserMenu />
             ) : (
@@ -180,6 +194,9 @@ const Index = () => {
       {/* Auth Modal */}
       <AuthModal open={showAuthModal} onOpenChange={setShowAuthModal} />
 
+      {/* Pricing Modal */}
+      <PricingModal open={showPricingModal} onOpenChange={setShowPricingModal} />
+
       {/* AI Chat */}
       <AIChat
         habits={habits}
@@ -187,6 +204,7 @@ const Index = () => {
         onAddHabit={addHabit}
         onEditHabit={editHabit}
         onDeleteHabit={deleteHabit}
+        onUpgradeClick={() => setShowPricingModal(true)}
       />
     </div>
   );
