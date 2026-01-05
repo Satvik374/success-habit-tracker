@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, Sparkles, Loader2, Check, X as XIcon, Zap, Target } from 'lucide-react';
+import { Bot, Send, X, Loader2, Check, X as XIcon, Target, Lock, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 
 interface Suggestion {
   id: string;
@@ -37,15 +38,19 @@ interface AIChatProps {
   onAddHabit: (name: string, icon: string) => void;
   onEditHabit: (habitId: string, newName?: string, newIcon?: string) => void;
   onDeleteHabit: (habitId: string) => void;
+  onUpgradeClick: () => void;
 }
 
-const AIChat = ({ habits, onAddTask, onAddHabit, onEditHabit, onDeleteHabit }: AIChatProps) => {
+const AIChat = ({ habits, onAddTask, onAddHabit, onEditHabit, onDeleteHabit, onUpgradeClick }: AIChatProps) => {
+  const { isPremium, features } = useSubscription();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       role: 'assistant',
-      content: "Hey there, adventurer! 🎮 I'm Quest AI, your productivity companion. I can help you add quests, manage habits, and suggest improvements. Try asking me to suggest some habits or tasks!",
+      content: isPremium 
+        ? "I am your Accountability Coach. My job is not to motivate you. My job is to hold you accountable. Tell me what you are working on."
+        : "Upgrade to Premium to unlock the AI Accountability Coach. This is not a friendly chatbot. This is a strict coach who will hold you accountable for your goals.",
     },
   ]);
   const [input, setInput] = useState('');
@@ -134,6 +139,25 @@ const AIChat = ({ habits, onAddTask, onAddHabit, onEditHabit, onDeleteHabit }: A
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
+
+    // Check if user has premium access
+    if (!features.aiCoach) {
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: input.trim(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+      setInput('');
+      
+      const lockedMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'The AI Accountability Coach is a Premium feature. Upgrade to unlock strict accountability, habit tracking insights, and direct guidance. No excuses accepted.',
+      };
+      setMessages((prev) => [...prev, lockedMessage]);
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -227,11 +251,19 @@ const AIChat = ({ habits, onAddTask, onAddHabit, onEditHabit, onDeleteHabit }: A
           {/* Header */}
           <div className="bg-aura-gradient p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-background/20 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary-foreground" />
+              {isPremium ? (
+                <Crown className="w-5 h-5 text-primary-foreground" />
+              ) : (
+                <Lock className="w-5 h-5 text-primary-foreground" />
+              )}
             </div>
             <div>
-              <h3 className="font-display font-bold text-primary-foreground">Quest AI</h3>
-              <p className="text-xs text-primary-foreground/80">Your productivity companion</p>
+              <h3 className="font-display font-bold text-primary-foreground">
+                {isPremium ? 'Accountability Coach' : 'AI Coach'}
+              </h3>
+              <p className="text-xs text-primary-foreground/80">
+                {isPremium ? 'Discipline over motivation' : 'Premium feature'}
+              </p>
             </div>
           </div>
 
@@ -354,27 +386,44 @@ const AIChat = ({ habits, onAddTask, onAddHabit, onEditHabit, onDeleteHabit }: A
 
           {/* Input */}
           <div className="p-4 border-t border-border">
-            <div className="flex gap-2">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Ask me anything..."
-                disabled={isLoading}
-                className="flex-1"
-              />
-              <Button
-                onClick={sendMessage}
-                disabled={!input.trim() || isLoading}
-                size="icon"
-                className="bg-aura-gradient hover:opacity-90"
-              >
-                <Send className="w-4 h-4" />
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              Try: "Suggest some habits for better health" or "What tasks should I add?"
-            </p>
+            {!features.aiCoach ? (
+              <div className="text-center">
+                <Button
+                  onClick={onUpgradeClick}
+                  className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold"
+                >
+                  <Crown className="w-4 h-4 mr-2" />
+                  Upgrade to Premium
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Unlock strict accountability coaching
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  <Input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Report your progress..."
+                    disabled={isLoading}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={sendMessage}
+                    disabled={!input.trim() || isLoading}
+                    size="icon"
+                    className="bg-aura-gradient hover:opacity-90"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Be honest. Excuses will not be accepted.
+                </p>
+              </>
+            )}
           </div>
         </div>
       )}
