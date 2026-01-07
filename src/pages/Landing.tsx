@@ -36,7 +36,7 @@ const Landing = () => {
         topColor="#8B5CF6"
         bottomColor="#EC4899"
         intensity={1.2}
-        rotationSpeed={0.5}
+        rotationSpeed={0.7}
         glowAmount={0.004}
         pillarWidth={2.5}
         pillarHeight={0.5}
