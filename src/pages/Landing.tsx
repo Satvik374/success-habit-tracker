@@ -33,15 +33,18 @@ const Landing = () => {
     <div className="relative min-h-screen bg-black overflow-hidden">
       {/* Light Pillar Background */}
       <LightPillar
-        topColor="#8B5CF6"
-        bottomColor="#EC4899"
-        intensity={1.2}
-        rotationSpeed={1.7}
-        glowAmount={0.004}
-        pillarWidth={2.5}
-        pillarHeight={0.5}
-        noiseIntensity={0.3}
-      />
+    topColor="#5227FF"
+    bottomColor="#FF9FFC"
+    intensity={1.0}
+    rotationSpeed={0.3}
+    glowAmount={0.005}
+    pillarWidth={3.0}
+    pillarHeight={0.4}
+    noiseIntensity={0.5}
+    pillarRotation={0}
+    interactive={false}
+    mixBlendMode="normal"
+  />
 
       {/* Content Overlay */}
       <div className="relative z-10 min-h-screen flex flex-col">
