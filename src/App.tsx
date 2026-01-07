@@ -7,6 +7,7 @@ import { AuraThemeProvider } from "@/contexts/AuraThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
+import Landing from "./pages/Landing";
 import Index from "./pages/Index";
 import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
@@ -24,7 +25,8 @@ const App = () => (
               <Sonner />
               <BrowserRouter>
                 <Routes>
-                  <Route path="/" element={<Index />} />
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/app" element={<Index />} />
                   <Route path="/analytics" element={<Analytics />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
