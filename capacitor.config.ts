@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.2bf64ed67e814c0982fccb3a4c8cfb88',
+  appId: 'com.successhabittracker.app',
   appName: 'success-habit-tracker',
   webDir: 'dist',
   server: {
