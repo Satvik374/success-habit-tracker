@@ -1,19 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useSubscription, SubscriptionPlan } from '@/contexts/SubscriptionContext';
 import { Check, Crown, Zap, BarChart3, Shield, Palette, FileText, Lock } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PricingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
   const { plan, setPlan, planDetails } = useSubscription();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+
+  // Load Razorpay script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => setRazorpayLoaded(true);
+    document.body.appendChild(script);
+
+    return () => {
+      const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+      if (existingScript) {
+        document.body.removeChild(existingScript);
+      }
+    };
+  }, []);
 
   const features = [
     { icon: Zap, label: 'AI Accountability Coach', description: 'Strict discipline-focused AI coach' },
@@ -25,15 +49,94 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
   ];
 
   const handleSubscribe = async () => {
+    if (!razorpayLoaded) {
+      toast.error('Payment system is loading. Please try again.');
+      return;
+    }
+
     setIsProcessing(true);
     
-    // Simulate payment processing (will be replaced with Razorpay later)
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setPlan(selectedPlan);
-    setIsProcessing(false);
-    onOpenChange(false);
-    toast.success(`Upgraded to ${selectedPlan === 'yearly' ? 'Yearly' : 'Monthly'} plan. Welcome to Premium.`);
+    try {
+      const amount = planDetails[selectedPlan].price;
+      
+      // Create order via edge function
+      const { data: orderData, error: orderError } = await supabase.functions.invoke('create-razorpay-order', {
+        body: {
+          amount: amount,
+          currency: 'INR',
+          plan: selectedPlan,
+        },
+      });
+
+      if (orderError || !orderData) {
+        console.error('Order creation error:', orderError);
+        throw new Error(orderError?.message || 'Failed to create order');
+      }
+
+      console.log('Order created:', orderData);
+
+      // Open Razorpay checkout
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Success Habit Tracker',
+        description: `${selectedPlan === 'yearly' ? 'Yearly' : 'Monthly'} Premium Subscription`,
+        order_id: orderData.orderId,
+        handler: async (response: any) => {
+          console.log('Payment successful:', response);
+          
+          // Verify payment
+          const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
+            body: {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              plan: selectedPlan,
+            },
+          });
+
+          if (verifyError || !verifyData?.success) {
+            console.error('Payment verification failed:', verifyError);
+            toast.error('Payment verification failed. Please contact support.');
+            setIsProcessing(false);
+            return;
+          }
+
+          // Payment successful - update subscription
+          setPlan(selectedPlan);
+          setIsProcessing(false);
+          onOpenChange(false);
+          toast.success(`🎉 Welcome to Premium! You're now on the ${selectedPlan === 'yearly' ? 'Yearly' : 'Monthly'} plan.`);
+        },
+        prefill: {
+          name: '',
+          email: '',
+        },
+        theme: {
+          color: '#8B5CF6',
+        },
+        modal: {
+          ondismiss: () => {
+            setIsProcessing(false);
+            toast.info('Payment cancelled');
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', (response: any) => {
+        console.error('Payment failed:', response.error);
+        toast.error(`Payment failed: ${response.error.description}`);
+        setIsProcessing(false);
+      });
+      rzp.open();
+      
+    } catch (error: any) {
+      console.error('Subscription error:', error);
+      toast.error(error.message || 'Failed to process payment. Please try again.');
+      setIsProcessing(false);
+    }
   };
 
   const isPremium = plan === 'monthly' || plan === 'yearly';
@@ -135,22 +238,24 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
             {/* Subscribe Button */}
             <Button
               onClick={handleSubscribe}
-              disabled={isProcessing}
+              disabled={isProcessing || !razorpayLoaded}
               className="w-full mt-6 h-12 bg-aura-gradient text-primary-foreground font-semibold"
             >
               {isProcessing ? (
                 'Processing...'
+              ) : !razorpayLoaded ? (
+                'Loading payment...'
               ) : (
                 <>
                   <Lock className="w-4 h-4 mr-2" />
-                  Subscribe for {planDetails[selectedPlan].currency}
-                  {planDetails[selectedPlan].price}/{selectedPlan === 'yearly' ? 'year' : 'month'}
+                  Pay {planDetails[selectedPlan].currency}
+                  {planDetails[selectedPlan].price} with Razorpay
                 </>
               )}
             </Button>
 
             <p className="text-xs text-center text-muted-foreground mt-3">
-              Payment integration coming soon. Currently simulated for demo.
+              Secure payment powered by Razorpay. Cancel anytime.
             </p>
           </>
         )}
