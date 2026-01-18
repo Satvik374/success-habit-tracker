@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useSubscription, SubscriptionPlan } from '@/contexts/SubscriptionContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Check, Crown, Zap, BarChart3, Shield, Palette, FileText, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,7 +19,8 @@ declare global {
 }
 
 const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
-  const { plan, setPlan, planDetails } = useSubscription();
+  const { user } = useAuth();
+  const { plan, setPlan, planDetails, refreshSubscription } = useSubscription();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [isProcessing, setIsProcessing] = useState(false);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
@@ -54,6 +56,11 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
       return;
     }
 
+    if (!user) {
+      toast.error('Please sign in to subscribe.');
+      return;
+    }
+
     setIsProcessing(true);
     
     try {
@@ -86,13 +93,15 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
         handler: async (response: any) => {
           console.log('Payment successful:', response);
           
-          // Verify payment
+          // Verify payment and save to database
           const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
             body: {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               plan: selectedPlan,
+              user_id: user.uid,
+              amount: amount,
             },
           });
 
@@ -103,8 +112,8 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
             return;
           }
 
-          // Payment successful - update subscription
-          setPlan(selectedPlan);
+          // Payment successful - refresh subscription from database
+          await refreshSubscription();
           setIsProcessing(false);
           onOpenChange(false);
           toast.success(`🎉 Welcome to Premium! You're now on the ${selectedPlan === 'yearly' ? 'Yearly' : 'Monthly'} plan.`);
