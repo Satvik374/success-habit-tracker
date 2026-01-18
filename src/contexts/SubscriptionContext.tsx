@@ -68,12 +68,39 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     setLoadingSubscription(true);
     try {
-      // Fetch subscription
-      const { data: subData, error: subError } = await supabase
+      // First try to fetch by user_id (Firebase UID)
+      let { data: subData, error: subError } = await supabase
         .from('subscriptions')
         .select('*')
         .eq('user_id', user.uid)
         .maybeSingle();
+
+      // If no subscription found by UID, check if there's one by email (for admin grants)
+      if (!subData && user.email) {
+        const { data: emailSubData, error: emailSubError } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', user.email)
+          .maybeSingle();
+
+        if (emailSubData && !emailSubError) {
+          // Migrate the email-based subscription to UID-based
+          const { error: updateError } = await supabase
+            .from('subscriptions')
+            .update({ user_id: user.uid })
+            .eq('user_id', user.email);
+
+          if (!updateError) {
+            subData = { ...emailSubData, user_id: user.uid };
+            
+            // Also update payment history
+            await supabase
+              .from('payment_history')
+              .update({ user_id: user.uid })
+              .eq('user_id', user.email);
+          }
+        }
+      }
 
       if (subError) {
         console.error('Error fetching subscription:', subError);
